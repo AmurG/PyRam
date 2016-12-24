@@ -71,9 +71,9 @@ def makematrix(q):
     #print(copycol);
     basecol = np.append(basecol,copycol);
     #print (basecol);
-  print (len(basecol))
-  print (np.shape(basecol))  
+  #print (len(basecol))
+  #print (np.shape(basecol))  
   basecol = np.reshape(basecol,(num,num));
   return basecol;
   
-print(makematrix(0))                
+#print(makematrix(0))
