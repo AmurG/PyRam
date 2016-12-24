@@ -49,8 +49,31 @@ def circulant(arr):
     arr[0] = temp;
     return;
     
-arr = [2,0,-2,0]
+#arr = [2,0,-2,0]
 
-for i in range(0,4):
-    circulant(arr)
-    print(arr)      
+#for i in range(0,4):
+#    circulant(arr)
+#    print(arr)
+    
+def makematrix(q):
+  num = int(np.rint(math.pow(2,q)));
+  #print(num);
+  basecol = np.zeros(num);
+  copycol = np.zeros(num);
+  for i in range(0, num):
+    basecol[i] = twopower(q,i);
+    copycol[i] = basecol[i];
+  if (q==0):
+    return basecol;
+  for j in range(1, num):
+    circulant(copycol);
+    #print(basecol);
+    #print(copycol);
+    basecol = np.append(basecol,copycol);
+    #print (basecol);
+  print (len(basecol))
+  print (np.shape(basecol))  
+  basecol = np.reshape(basecol,(num,num));
+  return basecol;
+  
+print(makematrix(0))                
