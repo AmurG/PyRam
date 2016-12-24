@@ -12,6 +12,8 @@ def c_10(n):
 
 for i in range(0,10):
 	print np.rint(c_10(i))
+	
+	
 
 
 
