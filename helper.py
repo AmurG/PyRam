@@ -30,8 +30,27 @@ def twopower(q,n):
       
 #test
 	
-for i in range(0,5):
-  for j in range(0,int(math.pow(2,i))):
-    print(twopower(i,j))
+#for i in range(0,5):
+#  for j in range(0,int(math.pow(2,i))):
+#    print(twopower(i,j))
 
+def circulant(arr):
+  if (len(arr)==1):
+    return;
+  if (len(arr)==2):
+    temp = arr[0];
+    arr[0] = arr[1];
+    arr[1] = temp;
+    return;
+  else:
+    temp = arr[len(arr)-1];
+    for i in range(0,len(arr)-1):
+      arr[len(arr)-1-i]=arr[len(arr)-2-i];  
+    arr[0] = temp;
+    return;
+    
+arr = [2,0,-2,0]
 
+for i in range(0,4):
+    circulant(arr)
+    print(arr)      
