@@ -47,22 +47,25 @@ def project(givenarr,q):
 #project(testarr,2)
 #project(testarr,3) 
 
-data, samplerate = sf.read('./54.wav')
+data, samplerate = sf.read('./an4.raw')
 print(len(data))
 print(samplerate)
+print(data[0:100])
 data = data/np.linalg.norm(data)
-data1 = data[:8192] # till 2^n
-data2 = data[8192:16384]
-data3 = data[16384:24576]
-proj = np.zeros(42)
-for i in range(0,14):
-  proj[i] = project(data1,i)
-  proj[i+14] = project(data2,i)
-  proj[i+28] = project(data3,i)
+plt.plot(data)
+plt.show()
+#data1 = data[:8192] # till 2^n
+#data2 = data[8192:16384]
+#data3 = data[16384:24576]
+#proj = np.zeros(42)
+#for i in range(0,14):
+#  proj[i] = project(data1,i)
+#  proj[i+14] = project(data2,i)
+#  proj[i+28] = project(data3,i)
   
 
-print(proj)
-plt.plot(proj)
-plt.show()
+#print(proj)
+#plt.plot(proj)
+#plt.show()
 
 
