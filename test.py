@@ -5,8 +5,12 @@ import matplotlib.pyplot as plt
 import helper as hlp
 import math
 from time import time
+from numpy.fft import fft, ifft
 
 #testarr = [2,1,2,3,4,5,6,7]
+
+def autocorr(x):
+    return ifft(fft(x) * fft(x).conj()).real
 
 def project(givenarr,q):
   num = int(np.rint(math.pow(2,q)));
@@ -47,25 +51,33 @@ def project(givenarr,q):
 #project(testarr,2)
 #project(testarr,3) 
 
-data, samplerate = sf.read('./an4.raw')
-print(len(data))
-print(samplerate)
-print(data[0:100])
+f = Sndfile('./test.wav', 'r')
+print (f.samplerate)
+print (f.channels)
+data = f.read_frames(16000)
+print(data)
+
 data = data/np.linalg.norm(data)
 plt.plot(data)
 plt.show()
-#data1 = data[:8192] # till 2^n
-#data2 = data[8192:16384]
-#data3 = data[16384:24576]
-#proj = np.zeros(42)
-#for i in range(0,14):
-#  proj[i] = project(data1,i)
-#  proj[i+14] = project(data2,i)
-#  proj[i+28] = project(data3,i)
+
+data = data[5000:13192] # 2^n
+
+#data = autocorr(data)
+
+#data = data/np.linalg.norm(data)
+#plt.plot(data)
+#plt.show()
+
+proj = np.zeros(14)
+for i in range(0,14):
+  proj[i] = project(data,i)
+  #proj[i+14] = project(data2,i)
+  #proj[i+28] = project(data3,i)
   
 
-#print(proj)
-#plt.plot(proj)
-#plt.show()
+print(proj)
+plt.plot(proj)
+plt.show()
 
 
