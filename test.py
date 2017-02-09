@@ -7,6 +7,7 @@ import math
 from time import time
 from numpy.fft import fft, ifft
 from sklearn import tree
+from sklearn.neural_network import MLPClassifier
 
 #testarr = [2,1,2,3,4,5,6,7]
 
@@ -52,10 +53,10 @@ def project(givenarr,q):
 #project(testarr,2)
 #project(testarr,3) 
 
-datavec = np.zeros(3600)
-datavec = np.reshape(datavec,(240,15))
+datavec = np.zeros(6300)
+datavec = np.reshape(datavec,(420,15))
 for i in range(4,10):
-	for j in range(10,50):
+	for j in range(10,80):
 		f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
 		data = f.read_frames(15000)
 		data = data/np.linalg.norm(data)
@@ -68,26 +69,27 @@ for i in range(4,10):
 		#plt.show()
 		
 		for z in range(0,14):
-	  		datavec[(i-4)*40+(j-10)][z] = project(data,z)
-		datavec[(i-4)*40+(j-10)][14] = i
+	  		datavec[(i-4)*70+(j-10)][z] = project(data,z)
+		datavec[(i-4)*70+(j-10)][14] = i
 
 #print(datavec[:,233])
-clf = tree.DecisionTreeClassifier()
-clf = clf.fit(datavec[:,:14], datavec[:,14])
+#clf = tree.DecisionTreeClassifier()
+clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 3), random_state=1)
+clf = clf.fit(datavec[:,9:14], datavec[:,14])
 
 temp = np.zeros(14)
 ncorr = 0
 nerr = 0
 
 for i in range(4,10):
-	for j in range(50,90):
+	for j in range(80,90):
 		f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
 		data = f.read_frames(15000)
 		data = data/np.linalg.norm(data)
 		data = data[5000:13192]
 		for z in range(0,14):
 			temp[z] = project(data,z)
-		est = clf.predict(temp)
+		est = clf.predict(temp[9:14])
 		if (est==i):
 			ncorr+=1
 		else:
