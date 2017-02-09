@@ -51,33 +51,24 @@ def project(givenarr,q):
 #project(testarr,2)
 #project(testarr,3) 
 
-f = Sndfile('./test.wav', 'r')
-print (f.samplerate)
-print (f.channels)
-data = f.read_frames(16000)
-print(data)
+datavec = np.zeros(3600)
+datavec = np.reshape(datavec,(15,240))
+for i in range(4,10):
+	for j in range(10,50):
+		f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
+		data = f.read_frames(15000)
+		data = data/np.linalg.norm(data)
+		data = data[5000:13192] # 2^n
+		
+		#data = autocorr(data)
+		
+		#data = data/np.linalg.norm(data)
+		#plt.plot(data)
+		#plt.show()
+		
+		for z in range(0,14):
+	  		datavec[z][(i-4)*40+(j-10)] = project(data,z)
+		datavec[14][(i-4)*40+(j-10)] = i
 
-data = data/np.linalg.norm(data)
-plt.plot(data)
-plt.show()
-
-data = data[5000:13192] # 2^n
-
-#data = autocorr(data)
-
-#data = data/np.linalg.norm(data)
-#plt.plot(data)
-#plt.show()
-
-proj = np.zeros(14)
-for i in range(0,14):
-  proj[i] = project(data,i)
-  #proj[i+14] = project(data2,i)
-  #proj[i+28] = project(data3,i)
-  
-
-print(proj)
-plt.plot(proj)
-plt.show()
-
+print(datavec[:,233])
 

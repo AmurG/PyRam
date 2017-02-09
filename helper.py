@@ -1,6 +1,5 @@
 import scipy 
 import numpy as np
-import eulerlib as euler
 import math
 
 # test for c_10
