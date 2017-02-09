@@ -53,7 +53,7 @@ def project(givenarr,q):
 #project(testarr,3) 
 
 datavec = np.zeros(3600)
-datavec = np.reshape(datavec,(240,15))
+datavec = np.reshape(datavec,(15,240))
 for i in range(4,10):
 	for j in range(10,50):
 		f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
@@ -68,12 +68,12 @@ for i in range(4,10):
 		#plt.show()
 		
 		for z in range(0,14):
-	  		datavec[(i-4)*40+(j-10)][z] = project(data,z)
-		datavec[(i-4)*40+(j-10)][14] = i
+	  		datavec[z][(i-4)*40+(j-10)] = project(data,z)
+		datavec[14][(i-4)*40+(j-10)] = i
 
 #print(datavec[:,233])
 clf = tree.DecisionTreeClassifier()
-clf = clf.fit(datavec[:,:14], datavec[:,14])
+clf = clf.fit(datavec[:14,:], datavec[14,:])
 
 temp = np.zeros(14)
 ncorr = 0
