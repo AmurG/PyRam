@@ -18,6 +18,13 @@ def process(i,j):
 	data = autocorr(data/np.linalg.norm(data))
 	return(data/np.linalg.norm(data))
 
+def timit(i,j):
+	f = Sndfile(str(i)+'_'+str(j)+'.wav', 'r')
+	data = f.read_frames(22000)
+	data = data[5000:21384] # 2^n
+	data = autocorr(data/np.linalg.norm(data))
+	return(data/np.linalg.norm(data))
+
 def autocorr(x):
     return ifft(fft(x) * fft(x).conj()).real
 
@@ -52,7 +59,25 @@ def project(givenarr,q):
   val = (float(num)/float(len(givenarr)))*val;
   print(t2-t1,t3-t2,t4-t3,t5-t4)    
   return (val)
-  
+
+timitvec = np.zeros(40)
+timitvec = np.reshape(timitvec,(20,2))
+temp = np.zeros(15)
+
+for i in range(0,10):
+	for j in range(0,2):
+		data = timit(i,j)
+		for z in range(0,15):
+			temp[z] = project(data,z)
+		timitvec[2*i+j][0] = temp[14]
+		timitvec[2*i+j][1] = temp[13]
+
+print(timitvec)
+
+plt.plot(timitvec[10:12,0],timitvec[10:12,1],'ko', timitvec[12:14,0],timitvec[12:14,1],'wo', timitvec[14:16,0],timitvec[14:16,1],'go', timitvec[16:18,0],timitvec[16:18,1],'ro', timitvec[18:20,0],timitvec[18:20,1],'co')
+plt.show()
+
+'''  
 datavec = np.zeros(6300)
 datavec = np.reshape(datavec,(420,15))
 for i in range(4,10):
@@ -86,3 +111,4 @@ for i in range(4,10):
 
 print (ncorr)
 print (nerr)
+'''
