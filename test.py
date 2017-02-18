@@ -13,6 +13,13 @@ from sklearn.neural_network import MLPClassifier
 
 #testarr = [2,1,2,3,4,5,6,7]
 
+def process(i,j):
+	f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
+	data = f.read_frames(15000)
+	data = data[5000:13192] # 2^n
+	data = autocorr(data/np.linalg.norm(data))
+	return(data/np.linalg.norm(data))
+
 def autocorr(x):
     return ifft(fft(x) * fft(x).conj()).real
 
@@ -59,12 +66,7 @@ datavec = np.zeros(6300)
 datavec = np.reshape(datavec,(420,15))
 for i in range(4,10):
 	for j in range(10,80):
-		f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
-		data = f.read_frames(15000)
-		data = data[5000:13192] # 2^n
-		data = data/np.linalg.norm(data)
-		data = autocorr(data)
-		data = data/np.linalg.norm(data)
+		data = process(i,j)
 		#plt.plot(data)
 		#plt.show()
 			
@@ -85,12 +87,7 @@ nerr = 0
 
 for i in range(4,10):
 	for j in range(80,90):
-		f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
-		data = f.read_frames(15000)
-		data = data[5000:13192] 
-		data = data/np.linalg.norm(data)
-		data = autocorr(data)
-		data = data/np.linalg.norm(data)
+		data = process(i,j)
 		for z in range(0,14):
 			temp[z] = project(data,z)
 		est = classif.predict(temp[9:14])
