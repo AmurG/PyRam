@@ -11,8 +11,6 @@ from sklearn.svm import LinearSVC
 from scipy import stats
 from sklearn.neural_network import MLPClassifier
 
-#testarr = [2,1,2,3,4,5,6,7]
-
 def process(i,j):
 	f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
 	data = f.read_frames(15000)
@@ -55,13 +53,6 @@ def project(givenarr,q):
   print(t2-t1,t3-t2,t4-t3,t5-t4)    
   return (val)
   
-#print(hlp.makematrix(4)) 
-
-#project(testarr,0)
-#project(testarr,1)
-#project(testarr,2)
-#project(testarr,3) 
-
 datavec = np.zeros(6300)
 datavec = np.reshape(datavec,(420,15))
 for i in range(4,10):
@@ -74,12 +65,8 @@ for i in range(4,10):
 	  		datavec[(i-4)*70+(j-10)][z] = project(data,z)
 		datavec[(i-4)*70+(j-10)][14] = i
 
-#print(datavec[233,:])
-
-#plt.plot(datavec[:70,13],datavec[:70,12],'bo', datavec[70:140,13],datavec[70:140,12],'ro', datavec[140:210,13],datavec[140:210,12],'go', datavec[210:280,13],datavec[210:280,12],'yo', datavec[280:350,13],datavec[280:350,12],'co', datavec[350:420,13],datavec[350:420,12],'ko')
-#plt.show()
-
-classif = OneVsRestClassifier(LinearSVC(random_state=0)).fit(datavec[:,9:14], datavec[:,14])
+nsamplebound = 6
+classif = OneVsRestClassifier(LinearSVC(random_state=0)).fit(datavec[:,nsamplebound:14], datavec[:,14])
 
 temp = np.zeros(14)
 ncorr = 0
@@ -90,7 +77,7 @@ for i in range(4,10):
 		data = process(i,j)
 		for z in range(0,14):
 			temp[z] = project(data,z)
-		est = classif.predict(temp[9:14])
+		est = classif.predict(temp[nsamplebound:14])
 		print(est)
 		if (est[0]==i):
 			ncorr+=1
