@@ -55,22 +55,18 @@ def project(givenarr,q):
 
 datavec = np.zeros(6300)
 datavec = np.reshape(datavec,(420,15))
-for i in range(4,10):
-	for j in range(10,80):
+for j in range(10,80):
+	for i in range(4,10):
 		f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
-		data = f.read_frames(15000)
+		data = f.read_frames(32000)
+		data = data[:8192] # 2^n
 		data = data/np.linalg.norm(data)
-		data = data[5000:13192] # 2^n
-		
-		plt.plot(data)
-		plt.show()
-		data = autocorr(data)
-		plt.plot(data)
-		plt.show()
-		#data = data/np.linalg.norm(data)
 		#plt.plot(data)
 		#plt.show()
-		
+		#data = autocorr(data)
+		#plt.plot(data)
+		#plt.show()
+			
 		for z in range(0,14):
 	  		datavec[(i-4)*70+(j-10)][z] = project(data,z)
 		datavec[(i-4)*70+(j-10)][14] = i
