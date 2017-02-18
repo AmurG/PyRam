@@ -6,7 +6,9 @@ import helper as hlp
 import math
 from time import time
 from numpy.fft import fft, ifft
-from sklearn import tree
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.svm import LinearSVC
+from scipy import stats
 from sklearn.neural_network import MLPClassifier
 
 #testarr = [2,1,2,3,4,5,6,7]
@@ -55,15 +57,14 @@ def project(givenarr,q):
 
 datavec = np.zeros(6300)
 datavec = np.reshape(datavec,(420,15))
-for j in range(10,80):
-	for i in range(4,10):
+for i in range(4,10):
+	for j in range(10,80):
 		f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
-		data = f.read_frames(32000)
-		data = data[:8192] # 2^n
+		data = f.read_frames(15000)
+		data = data[5000:13192] # 2^n
 		data = data/np.linalg.norm(data)
-		#plt.plot(data)
-		#plt.show()
-		#data = autocorr(data)
+		data = autocorr(data)
+		data = data/np.linalg.norm(data)
 		#plt.plot(data)
 		#plt.show()
 			
@@ -73,30 +74,31 @@ for j in range(10,80):
 
 #print(datavec[233,:])
 
-plt.plot(datavec[:70,13],datavec[:70,12],'bo', datavec[70:140,13],datavec[70:140,12],'ro', datavec[140:210,13],datavec[140:210,12],'go', datavec[210:280,13],datavec[210:280,12],'yo', datavec[280:350,13],datavec[280:350,12],'co', datavec[350:420,13],datavec[350:420,12],'ko')
-plt.show()
+#plt.plot(datavec[:70,13],datavec[:70,12],'bo', datavec[70:140,13],datavec[70:140,12],'ro', datavec[140:210,13],datavec[140:210,12],'go', datavec[210:280,13],datavec[210:280,12],'yo', datavec[280:350,13],datavec[280:350,12],'co', datavec[350:420,13],datavec[350:420,12],'ko')
+#plt.show()
 
-#clf = tree.DecisionTreeClassifier()
-#clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 3), random_state=1)
-#clf = clf.fit(datavec[:,9:14], datavec[:,14])
+classif = OneVsRestClassifier(LinearSVC(random_state=0)).fit(datavec[:,9:14], datavec[:,14])
 
-#temp = np.zeros(14)
-#ncorr = 0
-#nerr = 0
+temp = np.zeros(14)
+ncorr = 0
+nerr = 0
 
-#for i in range(4,10):
-#	for j in range(80,90):
-#		f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
-#		data = f.read_frames(15000)
-#		data = data/np.linalg.norm(data)
-#		data = data[5000:13192]
-#		for z in range(0,14):
-#			temp[z] = project(data,z)
-#		est = clf.predict(temp[9:14])
-#		if (est==i):
-#			ncorr+=1
-#		else:
-#			nerr+=1
+for i in range(4,10):
+	for j in range(80,90):
+		f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
+		data = f.read_frames(15000)
+		data = data[5000:13192] 
+		data = data/np.linalg.norm(data)
+		data = autocorr(data)
+		data = data/np.linalg.norm(data)
+		for z in range(0,14):
+			temp[z] = project(data,z)
+		est = classif.predict(temp[9:14])
+		print(est)
+		if (est[0]==i):
+			ncorr+=1
+		else:
+			nerr+=1
 
-#print (ncorr)
-#print (nerr)
+print (ncorr)
+print (nerr)
