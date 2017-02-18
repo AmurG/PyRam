@@ -62,8 +62,11 @@ for i in range(4,10):
 		data = data/np.linalg.norm(data)
 		data = data[5000:13192] # 2^n
 		
-		#data = autocorr(data)
-		
+		plt.plot(data)
+		plt.show()
+		data = autocorr(data)
+		plt.plot(data)
+		plt.show()
 		#data = data/np.linalg.norm(data)
 		#plt.plot(data)
 		#plt.show()
@@ -72,28 +75,32 @@ for i in range(4,10):
 	  		datavec[(i-4)*70+(j-10)][z] = project(data,z)
 		datavec[(i-4)*70+(j-10)][14] = i
 
-#print(datavec[:,233])
+#print(datavec[233,:])
+
+plt.plot(datavec[:70,13],datavec[:70,12],'bo', datavec[70:140,13],datavec[70:140,12],'ro', datavec[140:210,13],datavec[140:210,12],'go', datavec[210:280,13],datavec[210:280,12],'yo', datavec[280:350,13],datavec[280:350,12],'co', datavec[350:420,13],datavec[350:420,12],'ko')
+plt.show()
+
 #clf = tree.DecisionTreeClassifier()
-clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 3), random_state=1)
-clf = clf.fit(datavec[:,9:14], datavec[:,14])
+#clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 3), random_state=1)
+#clf = clf.fit(datavec[:,9:14], datavec[:,14])
 
-temp = np.zeros(14)
-ncorr = 0
-nerr = 0
+#temp = np.zeros(14)
+#ncorr = 0
+#nerr = 0
 
-for i in range(4,10):
-	for j in range(80,90):
-		f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
-		data = f.read_frames(15000)
-		data = data/np.linalg.norm(data)
-		data = data[5000:13192]
-		for z in range(0,14):
-			temp[z] = project(data,z)
-		est = clf.predict(temp[9:14])
-		if (est==i):
-			ncorr+=1
-		else:
-			nerr+=1
+#for i in range(4,10):
+#	for j in range(80,90):
+#		f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
+#		data = f.read_frames(15000)
+#		data = data/np.linalg.norm(data)
+#		data = data[5000:13192]
+#		for z in range(0,14):
+#			temp[z] = project(data,z)
+#		est = clf.predict(temp[9:14])
+#		if (est==i):
+#			ncorr+=1
+#		else:
+#			nerr+=1
 
-print (ncorr)
-print (nerr)
+#print (ncorr)
+#print (nerr)
