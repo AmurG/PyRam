@@ -84,11 +84,21 @@ def seqmake(q):
 			for j in range(0,q):
 				seq[j]=seq[j]+np.cos(2*pi*(i+1)*j/q)
 	for j in range(0,q):
-		seq[j] = np.rint(seq[j])
+		seq[j] = int(np.rint(seq[j]))
 	return(seq)
 
-print(seqmake(6))
+#print(seqmake(1))
+
+def matmake(q):
+	mat = np.zeros(int(np.rint(math.pow(q,2))))
+	mat = np.reshape(mat,(q,q))
+	aux = np.zeros(q)
+	aux = seqmake(q)
+	for i in range(0,q):
+		for j in range(0,q):
+			mat[i][j] = aux[(i-j+q)%q]
+	return(mat)
 	
-	
+print(matmake(9))	
   
 #print(makematrix(0))
