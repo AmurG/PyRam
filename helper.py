@@ -1,6 +1,8 @@
 import scipy 
 import numpy as np
 import math
+from eulerlib import Divisors
+import eulerlib 
 
 # test for c_10
 
@@ -74,5 +76,19 @@ def makematrix(q):
   #print (np.shape(basecol))  
   basecol = np.reshape(basecol,(num,num));
   return basecol;
+
+def seqmake(q):
+	seq = np.zeros(q)
+	for i in range(0,q):
+		if (eulerlib.numtheory.gcd(i+1,q)==1):
+			for j in range(0,q):
+				seq[j]=seq[j]+np.cos(2*pi*(i+1)*j/q)
+	for j in range(0,q):
+		seq[j] = np.rint(seq[j])
+	return(seq)
+
+print(seqmake(6))
+	
+	
   
 #print(makematrix(0))
