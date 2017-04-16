@@ -105,7 +105,21 @@ plt.plot(timitvec[10:12,0],timitvec[10:12,1],'ko', timitvec[12:14,0],timitvec[12
 plt.show()
 '''
 
-'''  
+frames = [210, 208, 180, 200]
+mainvec = []
+for i in range(0,4):
+	#print(table.divisors(frames[i]))
+	mainvec.append(table.divisors(frames[i]))
+#print(mainvec)
+mainvec = np.concatenate(mainvec)
+#print(mainvec)
+mainvec = list(set(mainvec))
+mainvec.sort()
+#print(mainvec)
+#print(len(mainvec))
+
+
+
 datavec = np.zeros(6300)
 datavec = np.reshape(datavec,(420,15))
 for i in range(4,10):
@@ -139,4 +153,5 @@ for i in range(4,10):
 
 print (ncorr)
 print (nerr)
-'''
+
+
