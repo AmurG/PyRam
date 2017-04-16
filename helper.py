@@ -99,6 +99,6 @@ def matmake(q):
 			mat[i][j] = aux[(i-j+q)%q]
 	return(mat)
 	
-print(matmake(9))	
+#print(matmake(9))	
   
 #print(makematrix(0))
