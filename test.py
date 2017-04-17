@@ -11,13 +11,26 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import LinearSVC
 from scipy import stats
 from sklearn.neural_network import MLPClassifier
+import scipy.io.wavfile
+from scikits.talkbox.features import mfcc
+
+
+'''
+sample_rate, X = scipy.io.wavfile.read("./test.wav")
+X = X[4000:8000]
+ceps, mspec, spec = mfcc(X,fs=11025)
+print(len(X))
+print(np.shape(ceps))
+print(np.shape(mspec))
+print(np.shape(spec))
+'''
 
 table=eulerlib.numtheory.Divisors()
 
 def process(i,j):
 	f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
 	data = f.read_frames(15000)
-	data = data[5000:13192] # 2^n
+	data = data[5000:9200] # 4200 samples
 	data = autocorr(data/np.linalg.norm(data))
 	return(data/np.linalg.norm(data))
 
@@ -116,35 +129,62 @@ mainvec = np.concatenate(mainvec)
 mainvec = list(set(mainvec))
 mainvec.sort()
 #print(mainvec)
-#print(len(mainvec))
+print(len(mainvec))
+matlist = []
+for i in range(0,len(mainvec)):
+	matlist.append(hlp.matmake(mainvec[i]))
+#print(np.shape(matlist[3]))
 
 
 
-datavec = np.zeros(6300)
-datavec = np.reshape(datavec,(420,15))
+def maxframeproject(arr):
+	features = np.zeros(len(mainvec))
+	for i in range(0,len(mainvec)):
+		temp = mainvec[i]
+		rem = len(arr)%int(temp)
+		rep = len(arr)/int(temp)
+		lwin = (rem-1)/2
+		uwin = lwin + rep*temp
+		aux = subsum(arr[lwin:uwin],temp)
+		#print(rep)
+		features[i] = float(np.dot(np.transpose(aux),np.matmul(matlist[i],aux)))/float(rep*temp) 
+	return(features)
+		
+
+def fullframeproj(arr,maxf=210, fullf=760):
+	ret = np.zeros(fullf)
+	for i in range(0,20):
+		aux2 = maxframeproject(arr[i*maxf:(i+1)*maxf])
+		for j in range(0,38):
+			ret[i*38+j]=aux2[j]
+	return(ret)
+
+datavec = np.zeros(182640)
+datavec = np.reshape(datavec,(240,761))
 for i in range(4,10):
-	for j in range(10,80):
+	for j in range(10,50):
 		data = process(i,j)
 		#plt.plot(data)
 		#plt.show()
-			
-		for z in range(0,14):
-	  		datavec[(i-4)*70+(j-10)][z] = project(data,z)
-		datavec[(i-4)*70+(j-10)][14] = i
+		feat = fullframeproj(data)	
+		for z in range(0,760):
+	  		datavec[(i-4)*40+(j-10)][z] = feat[z]
+		datavec[(i-4)*40+(j-10)][760] = i
 
-nsamplebound = 6
-classif = OneVsRestClassifier(LinearSVC(random_state=0)).fit(datavec[:,nsamplebound:14], datavec[:,14])
+#nsamplebound = 6
+classif = MLPClassifier(solver='lbfgs', alpha=1e-5,hidden_layer_sizes=(5, 2), random_state=1)
+classif.fit(datavec[:,:760], datavec[:,760])                         
+#classif = OneVsRestClassifier(LinearSVC(random_state=0)).fit(datavec[:,:760], datavec[:,760])
 
-temp = np.zeros(14)
+temp = np.zeros(760)
 ncorr = 0
 nerr = 0
 
 for i in range(4,10):
-	for j in range(80,90):
+	for j in range(50,90):
 		data = process(i,j)
-		for z in range(0,14):
-			temp[z] = project(data,z)
-		est = classif.predict(temp[nsamplebound:14])
+		feat = fullframeproj(data)
+		est = classif.predict(feat[:760])
 		print(est)
 		if (est[0]==i):
 			ncorr+=1
