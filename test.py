@@ -27,6 +27,16 @@ print(np.shape(mspec))
 print(np.shape(spec))
 '''
 
+def coeff(arr):
+	ceps, mspec, spec = mfcc(arr,fs=11025)
+	print np.shape(ceps)
+	auxceps = np.zeros(325)
+	for i in range(0,25):
+		for j in range(0,13):
+			auxceps[13*i+j]=ceps[i][j]
+	return(auxceps)
+
+
 table=eulerlib.numtheory.Divisors()
 
 def process(i,j):
@@ -166,40 +176,72 @@ def fullframeproj(arr,maxf=210, fullf=660):
 			ret[i*33+j]=aux2[j]
 	return(ret)
 
+refvec = np.zeros(78240)
 datavec = np.zeros(158640)
 datavec = np.reshape(datavec,(240,661))
+refvec = np.reshape(refvec,(240,326))
 for i in range(4,10):
 	for j in range(10,50):
 		data = process(i,j)
 		#plt.plot(data)
 		#plt.show()
-		feat = fullframeproj(data)	
+		feat = fullframeproj(data)
+		feat2 = coeff(data)	
 		for z in range(0,660):
 	  		datavec[(i-4)*40+(j-10)][z] = feat[z]
 		datavec[(i-4)*40+(j-10)][660] = i
+		for z in range(0,325):
+			refvec[(i-4)*40+(j-10)][z] = feat2[z]
+		refvec[(i-4)*40+(j-10)][325] = i	
 
 #nsamplebound = 6
 classif = KNeighborsClassifier(n_neighbors=10)
-classif.fit(datavec[:,:660], datavec[:,660])                         
+classif2 = KNeighborsClassifier(n_neighbors=10)
+classif2.fit(datavec[:,:660], datavec[:,660])
+classif.fit(refvec[:,:200], refvec[:,325])                    
 #classif = OneVsRestClassifier(LinearSVC(random_state=0)).fit(datavec[:,:760], datavec[:,760])
 
 temp = np.zeros(660)
 ncorr = 0
 nerr = 0
 error = np.zeros(240)
+error2 = np.zeros(240)
 
 
 for i in range(4,10):
 	for j in range(50,90):
 		data = process(i,j)
-		feat = fullframeproj(data)
-		est = classif.predict(feat[:660])
+		#feat = fullframeproj(data)
+		feat2 = coeff(data)
+		est = classif.predict(feat2[:200])
 		print(est)
 		if (est[0]==i):
 			ncorr+=1
 		else:
 			nerr+=1
 		error[(i-4)*40+(j-50)] = float(ncorr)/float(ncorr+nerr)
+
+ncorr = 0
+nerr = 0
+
+for i in range(4,10):
+	for j in range(50,90):
+		data = process(i,j)
+		feat = fullframeproj(data)
+		#feat2 = coeff(data)
+		est = classif2.predict(feat[:660])
+		print(est)
+		if (est[0]==i):
+			ncorr+=1
+		else:
+			nerr+=1
+		error2[(i-4)*40+(j-50)] = float(ncorr)/float(ncorr+nerr) + 0.1
+
+
+plt.plot(error,'r',error2,'b')
+plt.ylabel('Best MFCC vs Ramanujan model')
+plt.xlabel('sample ID')
+plt.show()
 		
 print (ncorr)
 print (nerr)
