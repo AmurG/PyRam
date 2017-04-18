@@ -13,6 +13,8 @@ from scipy import stats
 from sklearn.neural_network import MLPClassifier
 import scipy.io.wavfile
 from scikits.talkbox.features import mfcc
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
 
 
 '''
@@ -31,8 +33,8 @@ def process(i,j):
 	f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
 	data = f.read_frames(15000)
 	data = data[5000:9200] # 4200 samples
-	data = autocorr(data/np.linalg.norm(data))
-	return(data/np.linalg.norm(data))
+	data = autocorr(data)
+	return(data)
 
 def timit(i,j):
 	f = Sndfile(str(i)+'_'+str(j)+'.wav', 'r')
@@ -147,50 +149,58 @@ def maxframeproject(arr):
 		uwin = lwin + rep*temp
 		aux = subsum(arr[lwin:uwin],temp)
 		#print(rep)
-		features[i] = float(np.dot(np.transpose(aux),np.matmul(matlist[i],aux)))/float(rep*temp) 
+		features[i] = (float(np.dot(np.transpose(aux),np.matmul(matlist[i],aux)))/float(rep*temp))
+	features = features[1:34]
+	const = np.mean(features)
+	sd = np.std(features)
+	for i in range(0,len(features)):
+		features[i] = (features[i] - const)/sd
 	return(features)
 		
 
-def fullframeproj(arr,maxf=210, fullf=760):
+def fullframeproj(arr,maxf=210, fullf=660):
 	ret = np.zeros(fullf)
 	for i in range(0,20):
 		aux2 = maxframeproject(arr[i*maxf:(i+1)*maxf])
-		for j in range(0,38):
-			ret[i*38+j]=aux2[j]
+		for j in range(0,33):
+			ret[i*33+j]=aux2[j]
 	return(ret)
 
-datavec = np.zeros(182640)
-datavec = np.reshape(datavec,(240,761))
+datavec = np.zeros(158640)
+datavec = np.reshape(datavec,(240,661))
 for i in range(4,10):
 	for j in range(10,50):
 		data = process(i,j)
 		#plt.plot(data)
 		#plt.show()
 		feat = fullframeproj(data)	
-		for z in range(0,760):
+		for z in range(0,660):
 	  		datavec[(i-4)*40+(j-10)][z] = feat[z]
-		datavec[(i-4)*40+(j-10)][760] = i
+		datavec[(i-4)*40+(j-10)][660] = i
 
 #nsamplebound = 6
-classif = MLPClassifier(solver='lbfgs', alpha=1e-5,hidden_layer_sizes=(5, 2), random_state=1)
-classif.fit(datavec[:,:760], datavec[:,760])                         
+classif = KNeighborsClassifier(n_neighbors=10)
+classif.fit(datavec[:,:660], datavec[:,660])                         
 #classif = OneVsRestClassifier(LinearSVC(random_state=0)).fit(datavec[:,:760], datavec[:,760])
 
-temp = np.zeros(760)
+temp = np.zeros(660)
 ncorr = 0
 nerr = 0
+error = np.zeros(240)
+
 
 for i in range(4,10):
 	for j in range(50,90):
 		data = process(i,j)
 		feat = fullframeproj(data)
-		est = classif.predict(feat[:760])
+		est = classif.predict(feat[:660])
 		print(est)
 		if (est[0]==i):
 			ncorr+=1
 		else:
 			nerr+=1
-
+		error[(i-4)*40+(j-50)] = float(ncorr)/float(ncorr+nerr)
+		
 print (ncorr)
 print (nerr)
 
