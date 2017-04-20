@@ -235,7 +235,7 @@ for i in range(4,10):
 			ncorr+=1
 		else:
 			nerr+=1
-		error2[(i-4)*40+(j-50)] = float(ncorr)/float(ncorr+nerr) + 0.1
+		error2[(i-4)*40+(j-50)] = float(ncorr)/float(ncorr+nerr) 
 
 
 plt.plot(error,'r',error2,'b')
