@@ -10,11 +10,14 @@ from numpy.fft import fft, ifft
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import LinearSVC
 from scipy import stats
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 import scipy.io.wavfile
 from scikits.talkbox.features import mfcc
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
+from scipy.stats import *
+from sklearn.svm import SVC
 
 
 '''
@@ -42,9 +45,14 @@ table=eulerlib.numtheory.Divisors()
 def process(i,j):
 	f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
 	data = f.read_frames(15000)
-	data = data[5000:9200] # 4200 samples
 	data = autocorr(data)
-	return(data)
+	norm = 0
+	for i in range(0,20):
+		vec = data[i*500:i*500+4200]
+		if (np.linalg.norm(vec)>=norm):
+			currvec = vec
+			norm = np.linalg.norm(vec)
+	return(currvec)
 
 def timit(i,j):
 	f = Sndfile(str(i)+'_'+str(j)+'.wav', 'r')
@@ -151,20 +159,30 @@ for i in range(0,len(mainvec)):
 
 def maxframeproject(arr):
 	features = np.zeros(len(mainvec))
+	ham = np.hamming(len(arr))
+	auxarr = np.multiply(arr,ham)
+	auxarr2 = np.zeros(len(arr))
+	for i in range(1,len(arr)):
+		auxarr2[i] = auxarr[i] - 0.5*auxarr[i-1]
+	auxarr = auxarr2
 	for i in range(0,len(mainvec)):
 		temp = mainvec[i]
 		rem = len(arr)%int(temp)
 		rep = len(arr)/int(temp)
 		lwin = (rem-1)/2
 		uwin = lwin + rep*temp
-		aux = subsum(arr[lwin:uwin],temp)
+		aux = subsum(auxarr[lwin:uwin],temp)
 		#print(rep)
 		features[i] = (float(np.dot(np.transpose(aux),np.matmul(matlist[i],aux)))/float(rep*temp))
 	features = features[1:34]
+	aux = [np.log(((percentileofscore(features, i, 'weak'))/100)+5e-1) for i in features]
+	features = aux
 	const = np.mean(features)
 	sd = np.std(features)
+	m1 = np.amin(features)
+	m2 = np.amax(features)
 	for i in range(0,len(features)):
-		features[i] = (features[i] - const)/sd
+		features[i] = 2*((features[i]-m1)/(m2-m1)) - 1
 	return(features)
 		
 
@@ -176,32 +194,46 @@ def fullframeproj(arr,maxf=210, fullf=660):
 			ret[i*33+j]=aux2[j]
 	return(ret)
 
-refvec = np.zeros(78240)
-datavec = np.zeros(158640)
-datavec = np.reshape(datavec,(240,661))
-refvec = np.reshape(refvec,(240,326))
+refvec = np.zeros(84000)
+datavec = np.zeros(163200)
+datavec = np.reshape(datavec,(4800,34))
+refvec = np.reshape(refvec,(6000,14))
 for i in range(4,10):
 	for j in range(10,50):
 		data = process(i,j)
 		#plt.plot(data)
 		#plt.show()
 		feat = fullframeproj(data)
-		feat2 = coeff(data)	
-		for z in range(0,660):
-	  		datavec[(i-4)*40+(j-10)][z] = feat[z]
-		datavec[(i-4)*40+(j-10)][660] = i
-		for z in range(0,325):
-			refvec[(i-4)*40+(j-10)][z] = feat2[z]
-		refvec[(i-4)*40+(j-10)][325] = i	
+		feat2 = coeff(data)
+		for w in range(0,20):
+			for z in range(0,33):
+				datavec[20*((i-4)*40+(j-10))+w][z] = feat[33*w+z]
+			datavec[20*((i-4)*40+(j-10))+w][33] = i	
+		for w in range(0,25):
+			for z in range(0,13):
+				refvec[25*((i-4)*40+(j-10))+w][z] = feat2[13*w+z]
+			refvec[25*((i-4)*40+(j-10))+w][13] = i	
 
+'''
+for i in range(0,33):
+	pts = []
+	for z in range(0,240):
+		for j in range(0,20):
+			pts.append(datavec[z][33*j+i])
+	mean = np.mean(pts)
+	sd = np.std(pts)
+	for z in range(0,240):
+		for j in range(0,20):
+			datavec[z][33*j+i] = (datavec[z][33*j+i] - mean)/sd
+'''
 #nsamplebound = 6
-classif = KNeighborsClassifier(n_neighbors=10)
-classif2 = KNeighborsClassifier(n_neighbors=10)
-classif2.fit(datavec[:,:660], datavec[:,660])
-classif.fit(refvec[:,:200], refvec[:,325])                    
+classif =  GaussianNB()
+classif2 =  GaussianNB()
+classif2.fit(datavec[:,:33], datavec[:,33])
+classif.fit(refvec[:,:13], refvec[:,13])                    
 #classif = OneVsRestClassifier(LinearSVC(random_state=0)).fit(datavec[:,:760], datavec[:,760])
 
-temp = np.zeros(660)
+
 ncorr = 0
 nerr = 0
 error = np.zeros(240)
@@ -213,13 +245,23 @@ for i in range(4,10):
 		data = process(i,j)
 		#feat = fullframeproj(data)
 		feat2 = coeff(data)
-		est = classif.predict(feat2[:200])
-		print(est)
-		if (est[0]==i):
+		temp = np.zeros(6)
+		for w in range(0,25):
+			est = classif.predict(feat2[13*w:13*(w+1)])
+			temp[int(est-4)] = temp[int(est-4)]+1
+		idx = 0
+		for w in range(0,6):
+			if(temp[w]>=temp[idx]):
+				idx = w
+		idx = idx+4
+		if (idx==i):
 			ncorr+=1
 		else:
 			nerr+=1
 		error[(i-4)*40+(j-50)] = float(ncorr)/float(ncorr+nerr)
+
+ref = ncorr
+ref2 = nerr
 
 ncorr = 0
 nerr = 0
@@ -229,14 +271,20 @@ for i in range(4,10):
 		data = process(i,j)
 		feat = fullframeproj(data)
 		#feat2 = coeff(data)
-		est = classif2.predict(feat[:660])
-		print(est)
-		if (est[0]==i):
+		temp = np.zeros(6)
+		for w in range(0,20):
+			est = classif2.predict(feat[33*w:33*(w+1)])
+			temp[int(est-4)] = temp[int(est-4)]+1
+		idx = 0
+		for w in range(0,6):
+			if(temp[w]>=temp[idx]):
+				idx = w
+		idx = idx+4
+		if (idx==i):
 			ncorr+=1
 		else:
 			nerr+=1
-		error2[(i-4)*40+(j-50)] = float(ncorr)/float(ncorr+nerr) 
-
+		error2[(i-4)*40+(j-50)] = float(ncorr)/float(ncorr+nerr)
 
 plt.plot(error,'r',error2,'b')
 plt.ylabel('Best MFCC vs Ramanujan model')
@@ -245,5 +293,6 @@ plt.show()
 		
 print (ncorr)
 print (nerr)
+print (ref,ref2)
 
 
