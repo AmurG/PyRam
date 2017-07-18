@@ -236,6 +236,8 @@ classif.fit(refvec[:,:13], refvec[:,13])
 
 ncorr = 0
 nerr = 0
+fcorr = 0
+ferr = 0
 error = np.zeros(240)
 error2 = np.zeros(240)
 
@@ -248,6 +250,10 @@ for i in range(4,10):
 		temp = np.zeros(6)
 		for w in range(0,25):
 			est = classif.predict(feat2[13*w:13*(w+1)])
+			if (est==i):
+				fcorr = fcorr+1
+			else:
+				ferr = ferr+1
 			temp[int(est-4)] = temp[int(est-4)]+1
 		idx = 0
 		for w in range(0,6):
@@ -265,6 +271,8 @@ ref2 = nerr
 
 ncorr = 0
 nerr = 0
+fcorr2 = 0
+ferr2 = 0
 
 for i in range(4,10):
 	for j in range(50,90):
@@ -274,6 +282,10 @@ for i in range(4,10):
 		temp = np.zeros(6)
 		for w in range(0,20):
 			est = classif2.predict(feat[33*w:33*(w+1)])
+			if (est==i):
+				fcorr2 = fcorr2+1
+			else:
+				ferr2 = ferr2+1
 			temp[int(est-4)] = temp[int(est-4)]+1
 		idx = 0
 		for w in range(0,6):
@@ -294,5 +306,6 @@ plt.show()
 print (ncorr)
 print (nerr)
 print (ref,ref2)
+print (fcorr,ferr,fcorr2,ferr2)
 
 
