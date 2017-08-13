@@ -19,82 +19,69 @@ from sklearn.neighbors import KNeighborsClassifier
 from scipy.stats import *
 from sklearn.svm import SVC
 
+table=eulerlib.numtheory.Divisors() #Just making table, goes till 1k, big enough for almost all cases
 
-'''
-sample_rate, X = scipy.io.wavfile.read("./test.wav")
-X = X[4000:8000]
-ceps, mspec, spec = mfcc(X,fs=11025)
-print(len(X))
-print(np.shape(ceps))
-print(np.shape(mspec))
-print(np.shape(spec))
-'''
+#Sampling rate is 11025. You want 25 ms segment -> 11025/40 => 275 data points at least. Consider a few possible candidates nearby : 2^5 x 3^2 = 288, (18 divisors) 5*5*5*2*2 = 250,  7*7*3*2 = 294. The maximum of those is 294. So, let us restrict the frame size to 294 for generating up a feature map. We'll now search for 294-sized frames.  We now add 11*13*2 = 286, and 5*17*3 = 255 to nearly fully cover the divisors till 17 ( as the smaller periods contain significant energy post-highpass )
 
 def coeff(arr):
 	ceps, mspec, spec = mfcc(arr,fs=11025)
-	print np.shape(ceps)
+	#print np.shape(ceps)
 	auxceps = np.zeros(325)
 	for i in range(0,25):
 		for j in range(0,13):
 			auxceps[13*i+j]=ceps[i][j]
 	return(auxceps)
 
+#A helper function that should take as follows : gmix is a list of Scipy GMM objects. For each object in the list the function calculates the score from the GMM Model. The index is the speaker index i.e. the GMM models occur in the speaker order. The highest one is arg-returned.
 
-table=eulerlib.numtheory.Divisors()
+#The feats arg = dimensionality of a feature vec. The nfeats arg denotes how many feature vecs were fed in for this sample.
 
-def process(i,j):
+
+def returnscore(gmixlist, featmatrix):
+	winidx = 0
+	setscore = -1e13
+	for i in range(0,len(gmixlist)):
+		chosen = gmixlist[i]
+		score = chosen.score(featmatrix)
+		if (score>setscore):
+			winidx = i
+			setscore = score
+	return winidx
+
+#Wrapper to load files from the PDAs dataset, k = number of speech frames deemed suitable
+
+def process(i,j,k=6):
 	f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
-	data = f.read_frames(15000)
+	data = f.read_frames(14700)
 	data = autocorr(data)
 	norm = 0
-	for i in range(0,20):
-		vec = data[i*500:i*500+4200]
-		if (np.linalg.norm(vec)>=norm):
-			currvec = vec
-			norm = np.linalg.norm(vec)
-	return(currvec)
+	eng = np.zeros(60)
+	eng = np.reshape(eng,(30,2))	
+	for i in range(0,30):
+		vec = data[i*294:(i+1)*294]
+		eng[i][0] = np.linalg.norm(vec)
+		eng[i][1] = i
+	eng = eng[eng[:,0].argsort()]
+	returnarr = np.zeros(k*294)
+	returnarr = np.reshape(returnarr,(k,294))
+	for i in range(0,k):
+		idx = eng[i][1]	
+		for j in range(0,294):
+			returnarr[i][j] = data[idx*294+j]
+	return(returnarr)
 
+#Wrapper to load files from timit, not currently used, commented out
+'''
 def timit(i,j):
 	f = Sndfile(str(i)+'_'+str(j)+'.wav', 'r')
 	data = f.read_frames(22000)
 	data = data[5000:21384] # 2^n
 	data = autocorr(data/np.linalg.norm(data))
 	return(data/np.linalg.norm(data))
+'''
 
 def autocorr(x):
     return ifft(fft(x) * fft(x).conj()).real
-
-def project(givenarr,q):
-  num = int(np.rint(math.pow(2,q)));
-  arr = np.zeros(num);
-  aux = len(givenarr)/num;
-  t1 = time()
-  for i in range(0, aux):
-    for j in range(0, num):
-      arr[j] = arr[j] + givenarr[i*num+j];
-  t2 = time()    
-  #mat = hlp.makematrix(q)/num;
-  t3 = time()
-  #print(mat)
-  #vec = np.dot(mat,arr);
-  vec = np.zeros(len(arr))
-  if (q==0):
-    vec = arr;
-  elif (q==1):
-    vec[0] = 0.5*arr[0] - 0.5*arr[1]
-    vec[1] = -0.5*arr[0] + 0.5*arr[1]
-  else:
-    for i in range(0,num/2):
-      vec[i] = 0.5*arr[i] - 0.5*arr[num/2+i]
-      vec[i+num/2] = -vec[i];    
-  t4 = time()
-  #print (arr)
-  #print (vec)
-  val = np.dot(np.transpose(arr),vec)
-  t5 = time()
-  val = (float(num)/float(len(givenarr)))*val;
-  print(t2-t1,t3-t2,t4-t3,t5-t4)    
-  return (val)
 
 def subsum(arr,div):
 	aux = np.zeros(div)
@@ -102,9 +89,6 @@ def subsum(arr,div):
 		for j in range(0,div):
 			aux[j] = aux[j] + arr[i*div+j]
 	return(aux)
-
-#print(subsum(hlp.seqmake(10),1))
-	
 
 def genproj(arr):
 	div = table.divisors(len(arr))
@@ -116,46 +100,18 @@ def genproj(arr):
 		en[i] = float(np.dot(np.transpose(aux),np.matmul(mat,aux)))/float(len(arr))
 	return(en)
 
-#tst = [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5]
-#print(genproj(tst))
-
-'''
-timitvec = np.zeros(40)
-timitvec = np.reshape(timitvec,(20,2))
-temp = np.zeros(15)
-
-for i in range(0,10):
-	for j in range(0,2):
-		data = timit(i,j)
-		for z in range(0,15):
-			temp[z] = project(data,z)
-		timitvec[2*i+j][0] = temp[14]
-		timitvec[2*i+j][1] = temp[13]
-
-print(timitvec)
-
-plt.plot(timitvec[10:12,0],timitvec[10:12,1],'ko', timitvec[12:14,0],timitvec[12:14,1],'wo', timitvec[14:16,0],timitvec[14:16,1],'go', timitvec[16:18,0],timitvec[16:18,1],'ro', timitvec[18:20,0],timitvec[18:20,1],'co')
-plt.show()
-'''
-
-frames = [210, 208, 180, 200]
+frames = [288, 250, 294, 286, 255]
 mainvec = []
-for i in range(0,4):
+for i in range(0,len(frames)):
 	#print(table.divisors(frames[i]))
 	mainvec.append(table.divisors(frames[i]))
-#print(mainvec)
 mainvec = np.concatenate(mainvec)
-#print(mainvec)
 mainvec = list(set(mainvec))
 mainvec.sort()
-#print(mainvec)
-print(len(mainvec))
+
 matlist = []
 for i in range(0,len(mainvec)):
 	matlist.append(hlp.matmake(mainvec[i]))
-#print(np.shape(matlist[3]))
-
-
 
 def maxframeproject(arr):
 	features = np.zeros(len(mainvec))
@@ -174,7 +130,7 @@ def maxframeproject(arr):
 		aux = subsum(auxarr[lwin:uwin],temp)
 		#print(rep)
 		features[i] = (float(np.dot(np.transpose(aux),np.matmul(matlist[i],aux)))/float(rep*temp))
-	features = features[1:34]
+	features = features[1:]
 	aux = [np.log(((percentileofscore(features, i, 'weak'))/100)+5e-1) for i in features]
 	features = aux
 	const = np.mean(features)
@@ -186,12 +142,16 @@ def maxframeproject(arr):
 	return(features)
 		
 
-def fullframeproj(arr,maxf=210, fullf=660):
-	ret = np.zeros(fullf)
-	for i in range(0,20):
-		aux2 = maxframeproject(arr[i*maxf:(i+1)*maxf])
-		for j in range(0,33):
-			ret[i*33+j]=aux2[j]
+#assume fsize divides arr, i.e. you pass a total array that is made up exactly of fsize-sized frames
+
+def fullframeproj(arr,fsize):
+	frames = arr/fsize
+	temp = len(mainvec)-1
+	ret = np.zeros(frames*temp)
+	for i in range(0,frames):
+		aux2 = maxframeproject(arr[i*fsize:(i+1)*fsize])
+		for j in range(0,temp):
+			ret[i*temp+j]=aux2[j]
 	return(ret)
 
 refvec = np.zeros(84000)
@@ -234,78 +194,4 @@ classif.fit(refvec[:,:13], refvec[:,13])
 #classif = OneVsRestClassifier(LinearSVC(random_state=0)).fit(datavec[:,:760], datavec[:,760])
 
 
-ncorr = 0
-nerr = 0
-fcorr = 0
-ferr = 0
-error = np.zeros(240)
-error2 = np.zeros(240)
-
-
-for i in range(4,10):
-	for j in range(50,90):
-		data = process(i,j)
-		#feat = fullframeproj(data)
-		feat2 = coeff(data)
-		temp = np.zeros(6)
-		for w in range(0,25):
-			est = classif.predict(feat2[13*w:13*(w+1)])
-			if (est==i):
-				fcorr = fcorr+1
-			else:
-				ferr = ferr+1
-			temp[int(est-4)] = temp[int(est-4)]+1
-		idx = 0
-		for w in range(0,6):
-			if(temp[w]>=temp[idx]):
-				idx = w
-		idx = idx+4
-		if (idx==i):
-			ncorr+=1
-		else:
-			nerr+=1
-		error[(i-4)*40+(j-50)] = float(ncorr)/float(ncorr+nerr)
-
-ref = ncorr
-ref2 = nerr
-
-ncorr = 0
-nerr = 0
-fcorr2 = 0
-ferr2 = 0
-
-for i in range(4,10):
-	for j in range(50,90):
-		data = process(i,j)
-		feat = fullframeproj(data)
-		#feat2 = coeff(data)
-		temp = np.zeros(6)
-		for w in range(0,20):
-			est = classif2.predict(feat[33*w:33*(w+1)])
-			if (est==i):
-				fcorr2 = fcorr2+1
-			else:
-				ferr2 = ferr2+1
-			temp[int(est-4)] = temp[int(est-4)]+1
-		idx = 0
-		for w in range(0,6):
-			if(temp[w]>=temp[idx]):
-				idx = w
-		idx = idx+4
-		if (idx==i):
-			ncorr+=1
-		else:
-			nerr+=1
-		error2[(i-4)*40+(j-50)] = float(ncorr)/float(ncorr+nerr)
-
-plt.plot(error,'r',error2,'b')
-plt.ylabel('Best MFCC vs Ramanujan model')
-plt.xlabel('sample ID')
-plt.show()
-		
-print (ncorr)
-print (nerr)
-print (ref,ref2)
-print (fcorr,ferr,fcorr2,ferr2)
-
-
+	
