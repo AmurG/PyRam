@@ -7,17 +7,11 @@ import math
 import eulerlib
 from time import time
 from numpy.fft import fft, ifft
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn.svm import LinearSVC
 from scipy import stats
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.neural_network import MLPClassifier
 import scipy.io.wavfile
 from scikits.talkbox.features import mfcc
-from sklearn.naive_bayes import GaussianNB
-from sklearn.neighbors import KNeighborsClassifier
 from scipy.stats import *
-from sklearn.svm import SVC
+from sklearn.mixture import GaussianMixture as gmm
 
 table=eulerlib.numtheory.Divisors() #Just making table, goes till 1k, big enough for almost all cases
 
@@ -26,8 +20,8 @@ table=eulerlib.numtheory.Divisors() #Just making table, goes till 1k, big enough
 def coeff(arr):
 	ceps, mspec, spec = mfcc(arr,fs=11025)
 	#print np.shape(ceps)
-	auxceps = np.zeros(325)
-	for i in range(0,25):
+	auxceps = np.zeros(130)
+	for i in range(0,10):
 		for j in range(0,13):
 			auxceps[13*i+j]=ceps[i][j]
 	return(auxceps)
@@ -54,6 +48,7 @@ def process(i,j,k=6):
 	f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
 	data = f.read_frames(14700)
 	data = autocorr(data)
+	#print(data)
 	norm = 0
 	eng = np.zeros(60)
 	eng = np.reshape(eng,(30,2))	
@@ -61,13 +56,15 @@ def process(i,j,k=6):
 		vec = data[i*294:(i+1)*294]
 		eng[i][0] = np.linalg.norm(vec)
 		eng[i][1] = i
+	#print(eng[:,1])
 	eng = eng[eng[:,0].argsort()]
+	#print(eng[:,1])
 	returnarr = np.zeros(k*294)
-	returnarr = np.reshape(returnarr,(k,294))
+	#returnarr = np.reshape(returnarr,(k,294))
 	for i in range(0,k):
-		idx = eng[i][1]	
+		idx = int(eng[i][1])	
 		for j in range(0,294):
-			returnarr[i][j] = data[idx*294+j]
+			returnarr[i*294+j] = data[idx*294+j]
 	return(returnarr)
 
 #Wrapper to load files from timit, not currently used, commented out
@@ -145,53 +142,67 @@ def maxframeproject(arr):
 #assume fsize divides arr, i.e. you pass a total array that is made up exactly of fsize-sized frames
 
 def fullframeproj(arr,fsize):
-	frames = arr/fsize
+	frames = len(arr)/fsize
 	temp = len(mainvec)-1
-	ret = np.zeros(frames*temp)
+	ret = np.zeros((frames*temp))
 	for i in range(0,frames):
 		aux2 = maxframeproject(arr[i*fsize:(i+1)*fsize])
 		for j in range(0,temp):
 			ret[i*temp+j]=aux2[j]
 	return(ret)
 
-refvec = np.zeros(84000)
-datavec = np.zeros(163200)
-datavec = np.reshape(datavec,(4800,34))
-refvec = np.reshape(refvec,(6000,14))
+print(len(mainvec))
+
+length = len(mainvec)-1
+datavec = np.zeros((1440,len(mainvec)))
+refvec = np.zeros((2400,14))
 for i in range(4,10):
 	for j in range(10,50):
 		data = process(i,j)
 		#plt.plot(data)
 		#plt.show()
-		feat = fullframeproj(data)
+		feat = fullframeproj(data,294)
+		#print(feat)
 		feat2 = coeff(data)
-		for w in range(0,20):
-			for z in range(0,33):
-				datavec[20*((i-4)*40+(j-10))+w][z] = feat[33*w+z]
-			datavec[20*((i-4)*40+(j-10))+w][33] = i	
-		for w in range(0,25):
+		for w in range(0,6):
+			for z in range(0,length):
+				datavec[6*((i-4)*40+(j-10))+w][z] = feat[length*w+z]
+			datavec[6*((i-4)*40+(j-10))+w][len(mainvec)-1] = i	
+		for w in range(0,10):
 			for z in range(0,13):
-				refvec[25*((i-4)*40+(j-10))+w][z] = feat2[13*w+z]
-			refvec[25*((i-4)*40+(j-10))+w][13] = i	
+				refvec[10*((i-4)*40+(j-10))+w][z] = feat2[13*w+z]
+			refvec[10*((i-4)*40+(j-10))+w][13] = i	
 
-'''
-for i in range(0,33):
-	pts = []
-	for z in range(0,240):
-		for j in range(0,20):
-			pts.append(datavec[z][33*j+i])
-	mean = np.mean(pts)
-	sd = np.std(pts)
-	for z in range(0,240):
-		for j in range(0,20):
-			datavec[z][33*j+i] = (datavec[z][33*j+i] - mean)/sd
-'''
-#nsamplebound = 6
-classif =  GaussianNB()
-classif2 =  GaussianNB()
-classif2.fit(datavec[:,:33], datavec[:,33])
-classif.fit(refvec[:,:13], refvec[:,13])                    
-#classif = OneVsRestClassifier(LinearSVC(random_state=0)).fit(datavec[:,:760], datavec[:,760])
+ramanclass = []
+mfccclass = []
+for i in range(0,6):
+	clf = gmm(n_components=3, covariance_type = 'full')
+	clf.fit(datavec[240*i:240*(i+1),:length])
+	ramanclass.append(clf)
+	clf = gmm(n_components=3, covariance_type = 'full')
+	clf.fit(datavec[240*i:240*(i+1),:13])
+	mfccclass.append(clf)
 
+ncorr,nerr = 0,0
+nsc,nse = 0,0
+
+for i in range(4,10):
+	for j in range(50,90):
+		data = process(i,j)
+		feat = fullframeproj(data,294)
+		feat2 = coeff(data)
+		for w in range(0,6):
+			pred = returnscore(ramanclass,feat[length*w:(w+1)*length])
+			if(pred==(i-4)):
+				ncorr = ncorr+1
+			else:
+				nerr = nerr+1
+		for w in range(0,10):
+			pred = returnscore(mfccclass,feat2[13*w:13*(w+1)])
+			if(pred==(i-4)):
+				nsc = nsc+1
+			else:
+				nse = nse+1
 
 	
+print(ncorr,nerr,nsc,nse)
