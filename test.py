@@ -169,7 +169,7 @@ print(len(mainvec))
 length = len(mainvec)-1
 
 #Uncomment for mini-frame level recogn stats on PDAs
-'''
+
 datavec = np.zeros((1440,len(mainvec)))
 refvec = np.zeros((2400,14))
 for i in range(4,10):
@@ -192,11 +192,11 @@ for i in range(4,10):
 ramanclass = []
 mfccclass = []
 for i in range(0,6):
-	clf = gmm(n_components=3, covariance_type = 'full')
+	clf = gmm(n_components=3, covariance_type = 'diag')
 	clf.fit(datavec[240*i:240*(i+1),:length])
 	ramanclass.append(clf)
-	clf = gmm(n_components=3, covariance_type = 'full')
-	clf.fit(datavec[240*i:240*(i+1),:13])
+	clf = gmm(n_components=3, covariance_type = 'diag')
+	clf.fit(refvec[240*i:240*(i+1),:13])
 	mfccclass.append(clf)
 
 ncorr,nerr = 0,0
@@ -222,6 +222,60 @@ for i in range(4,10):
 
 	
 print(ncorr,nerr,nsc,nse)
+
 '''
+timitdata = timit()
+datavec = np.zeros((18900,len(mainvec)))
+refvec = np.zeros((31500,14))
 
+for i in range(0,630):
+	for j in range(0,5):
+		data = timitdata[10*i+j,:]
+		#plt.plot(data)
+		#plt.show()
+		feat = fullframeproj(data,294)
+		#print(feat)
+		feat2 = coeff(data)
+		for w in range(0,6):
+			for z in range(0,length):
+				datavec[6*(i*5+j)+w][z] = feat[length*w+z]
+			datavec[6*(i*5+j)+w][len(mainvec)-1] = i	
+		for w in range(0,10):
+			for z in range(0,13):
+				refvec[10*(i*5+j)+w][z] = feat2[13*w+z]
+			refvec[10*(i*5+j)+w][13] = i	
 
+ramanclass = []
+mfccclass = []
+for i in range(0,630):
+	clf = gmm(n_components=3, covariance_type = 'full')
+	clf.fit(datavec[30*i:30*(i+1),:length])
+	ramanclass.append(clf)
+	clf = gmm(n_components=3, covariance_type = 'full')
+	clf.fit(refvec[50*i:50*(i+1),:13])
+	mfccclass.append(clf)
+
+ncorr,nerr = 0,0
+nsc,nse = 0,0
+
+for i in range(0,630):
+	for j in range(5,10):
+		data = timitdata[10*i+j,:]
+		feat = fullframeproj(data,294)
+		feat2 = coeff(data)
+		for w in range(0,6):
+			pred = returnscore(ramanclass,feat[length*w:(w+1)*length])
+			if(pred==i):
+				ncorr = ncorr+1
+			else:
+				nerr = nerr+1
+		for w in range(0,10):
+			pred = returnscore(mfccclass,feat2[13*w:13*(w+1)])
+			if(pred==(i)):
+				nsc = nsc+1
+			else:
+				nse = nse+1
+
+	
+print(ncorr,nerr,nsc,nse)
+'''
