@@ -1,5 +1,6 @@
 import numpy as np
 from scikits.audiolab import Sndfile
+from glob import glob
 import soundfile as sf
 import matplotlib.pyplot as plt
 import helper as hlp
@@ -44,9 +45,9 @@ def returnscore(gmixlist, featmatrix):
 
 #Wrapper to load files from the PDAs dataset, k = number of speech frames deemed suitable
 
-def process(i,j,k=6):
-	f = Sndfile('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav', 'r')
-	data = f.read_frames(14700)
+def ksel(filename,k=6,read=14700):
+	f = Sndfile(filename, 'r')
+	data = f.read_frames(read)
 	data = autocorr(data)
 	#print(data)
 	norm = 0
@@ -67,15 +68,24 @@ def process(i,j,k=6):
 			returnarr[i*294+j] = data[idx*294+j]
 	return(returnarr)
 
-#Wrapper to load files from timit, not currently used, commented out
-'''
-def timit(i,j):
-	f = Sndfile(str(i)+'_'+str(j)+'.wav', 'r')
-	data = f.read_frames(22000)
-	data = data[5000:21384] # 2^n
-	data = autocorr(data/np.linalg.norm(data))
-	return(data/np.linalg.norm(data))
-'''
+def process(i,j,k=6,readin=14700):
+	filename = str('../PDAs/00'+str(i)+'/PDAs0'+str(i)+'_0'+str(j)+'_1.wav')
+	return ksel(filename,k,readin)
+
+#Call to get the TIMIT speakers as an array, all 630
+
+def timit(k=6,readin=14000):
+	dirs = glob("../TIMIT/*/")
+	timitarr = np.zeros((6300,294*k))
+	for i in range(0,630):
+		wavs = glob(str(dirs[i])+"*.WAV")
+		print(dirs[i])
+		for j in range(0,10):
+			address = wavs[j]
+			get = ksel(address,read=readin)
+			for w in range(0,294*k):
+				timitarr[10*i+j][w] = get[w]
+	return timitarr
 
 def autocorr(x):
     return ifft(fft(x) * fft(x).conj()).real
@@ -151,9 +161,15 @@ def fullframeproj(arr,fsize):
 			ret[i*temp+j]=aux2[j]
 	return(ret)
 
+#placeholder = timit()
+#print(np.shape(placeholder))
+
 print(len(mainvec))
 
 length = len(mainvec)-1
+
+#Uncomment for mini-frame level recogn stats on PDAs
+'''
 datavec = np.zeros((1440,len(mainvec)))
 refvec = np.zeros((2400,14))
 for i in range(4,10):
@@ -206,3 +222,6 @@ for i in range(4,10):
 
 	
 print(ncorr,nerr,nsc,nse)
+'''
+
+
